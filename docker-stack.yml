@@ -1,141 +1,92 @@
-version: '3.8'
-
-# Мережі для ізоляції сервісів
-networks:
-  train-booking-network:
-    driver: overlay
-    attachable: true
-
-# Volumes для збереження даних
-volumes:
-  mysql_data:
-    driver: local
-
-# Секрети (паролі, ключі)
-secrets:
-  mysql_root_password:
-    external: true
-  mysql_password:
-    external: true
-  secret_key:
-    external: true
-
-# Конфігурації (не-чутливі дані)
-configs:
-  flask_config:
-    external: true
+version: "3.9"
 
 services:
-  # MySQL Database
   mysql:
     image: mysql:5.7
-    networks:
-      - train-booking-network
-#    volumes:
-#      - mysql_data:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
+      MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: train_booking_db
       MYSQL_USER: trainuser
-      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
-    secrets:
-      - mysql_root_password
-      - mysql_password
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager  # Запускати тільки на manager node
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
-  # Flask Application
-  flask_app:
-    image: ghcr.io/pikabut0t/train-booking-app:latest
-#    image: train-booking-app:latest
-    networks:
-      - train-booking-network
-    environment:
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
-      MYSQL_USER: trainuser
-      MYSQL_DATABASE: train_booking_db
-      MYSQL_PASSWORD_FILE: /run/secrets/mysql_password
-      SECRET_KEY_FILE: /run/secrets/secret_key
-      FLASK_ENV: production
-    secrets:
-      - mysql_password
-      - secret_key
-    configs:
-      - source: flask_config
-        target: /app/config/production.py
-    ports:
-      - "8089:5000"  # Мапимо порт 8089 на хості до 5000 в контейнері
-    deploy:
-      replicas: 3  # Запустити 3 копії для високої доступності
-      update_config:
-        parallelism: 1  # Оновлювати по 1 контейнеру
-        delay: 10s      # Затримка між оновленнями
-        failure_action: rollback  # Откат при помилці
-        order: start-first  # Спочатку запустити новий, потім зупинити старий
-      rollback_config:
-        parallelism: 1
-        delay: 5s
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 256M
-      placement:
-        max_replicas_per_node: 2  # Максимум 2 репліки на одному сервері
-        preferences:
-          - spread: node.labels.zone  # Розподілити по зонах
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    depends_on:
-      - mysql
-
-  # Visualizer (опціонально - для моніторингу)
-  visualizer:
-    image: dockersamples/visualizer:latest
-    networks:
-      - train-booking-network
-    ports:
-      - "8080:8080"
+      MYSQL_PASSWORD: trainpass
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      - mysql_data:/var/lib/mysql
+    networks:
+      - train_booking_network
     deploy:
-      replicas: 1
       placement:
         constraints:
           - node.role == manager
+      restart_policy:
+        condition: on-failure
+
+  db_migrate:
+    image: ghcr.io/pikabut0t/train-booking-app:latest
+    command: >
+      sh -c "
+        echo 'Waiting for MySQL...';
+        sleep 15;
+        until nc -z mysql 3306; do echo 'Waiting for DB port...'; sleep 2; done;
+        echo 'Running migrations...';
+        python migrate.py;
+        echo 'Migrations complete!'
+      "
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_USER: trainuser
+      MYSQL_PASSWORD: trainpass
+      MYSQL_DATABASE: train_booking_db
+    networks:
+      - train_booking_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+
+  flask_app:
+    image: ghcr.io/pikabut0t/train-booking-app:latest
+    command: >
+      sh -c "
+        echo 'Waiting for MySQL DNS + port...';
+        sleep 10;
+        until getent hosts mysql; do sleep 2; done;
+        until nc -z mysql 3306; do echo 'Waiting for port 3306...'; sleep 2; done;
+        echo 'DB is ready!';
+        gunicorn -b 0.0.0.0:5000 --workers 1 --timeout 120 'app:create_app()'
+      "
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: "3306"
+      MYSQL_USER: trainuser
+      MYSQL_PASSWORD: trainpass
+      MYSQL_DATABASE: train_booking_db
+    ports:
+      - "8089:5000"
+    networks:
+      - train_booking_network
+    healthcheck:
+      disable: true
+#      test: ["CMD", "curl", "-f", "http://localhost:5000/api/auth/check"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 5
+#      start_period: 40s
+    deploy:
+      replicas: 3
       resources:
         limits:
-          cpus: '0.2'
-          memory: 128M
+          memory: 320M
+        reservations:
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 10
+
+networks:
+  train_booking_network:
+    driver: overlay
+
+volumes:
+  mysql_data:
