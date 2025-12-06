@@ -5,33 +5,33 @@
 {% block content %}
 <div class="card">
     <h2 style="text-align: center; margin-bottom: 2rem;">Welcome to Your Dashboard</h2>
-    
+
     <div id="user-info" style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
         <p style="text-align: center;">Loading user information...</p>
     </div>
-    
+
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
         <div style="background: #e3f2fd; padding: 2rem; border-radius: 8px; text-align: center;">
             <h3 style="color: #1976d2;">Total Bookings</h3>
             <p id="total-bookings" style="font-size: 2.5rem; font-weight: bold; color: #1976d2;">0</p>
         </div>
-        
+
         <div style="background: #e8f5e9; padding: 2rem; border-radius: 8px; text-align: center;">
             <h3 style="color: #388e3c;">Confirmed</h3>
             <p id="confirmed-bookings" style="font-size: 2.5rem; font-weight: bold; color: #388e3c;">0</p>
         </div>
-        
+
         <div style="background: #fff3e0; padding: 2rem; border-radius: 8px; text-align: center;">
             <h3 style="color: #f57c00;">Pending</h3>
             <p id="pending-bookings" style="font-size: 2.5rem; font-weight: bold; color: #f57c00;">0</p>
         </div>
-        
+
         <div style="background: #ffebee; padding: 2rem; border-radius: 8px; text-align: center;">
             <h3 style="color: #d32f2f;">Cancelled</h3>
             <p id="cancelled-bookings" style="font-size: 2.5rem; font-weight: bold; color: #d32f2f;">0</p>
         </div>
     </div>
-    
+
     <h3 style="margin-bottom: 1rem;">Quick Actions</h3>
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
         <a href="/search" class="btn btn-primary" style="text-align: center; padding: 1.5rem;">
@@ -57,15 +57,8 @@
 {% block extra_js %}
 <script>
 async function loadDashboard() {
-    const token = localStorage.getItem('token');
-    
-    if (!token) {
-        window.location.href = '/login';
-        return;
-    }
-    
     try {
-        // Load user info
+        // Load user info (apiRequest handles auth via cookies)
         const userData = await apiRequest(API_BASE_URL + '/auth/me');
         document.getElementById('user-info').innerHTML = `
             <h3 style="text-align: center; margin-bottom: 1rem;">Hello, ${userData.user.full_name}!</h3>
@@ -76,32 +69,32 @@ async function loadDashboard() {
                 <div><strong>Role:</strong> ${userData.user.role.toUpperCase()}</div>
             </div>
         `;
-        
+
         // Load tickets
         const ticketsData = await apiRequest(API_BASE_URL + '/tickets/');
         const tickets = ticketsData.tickets;
-        
+
         // Calculate statistics
         const total = tickets.length;
         const confirmed = tickets.filter(t => t.status === 'confirmed').length;
         const pending = tickets.filter(t => t.status === 'pending').length;
         const cancelled = tickets.filter(t => t.status === 'cancelled').length;
-        
+
         document.getElementById('total-bookings').textContent = total;
         document.getElementById('confirmed-bookings').textContent = confirmed;
         document.getElementById('pending-bookings').textContent = pending;
         document.getElementById('cancelled-bookings').textContent = cancelled;
-        
+
         // Display recent bookings (last 5)
         const recentBookings = tickets.slice(0, 5);
         const recentContainer = document.getElementById('recent-bookings');
-        
+
         if (recentBookings.length === 0) {
             recentContainer.innerHTML = '<div class="alert alert-info">No bookings yet. Start by searching for trains!</div>';
         } else {
             let html = '<table>';
             html += '<thead><tr><th>PNR</th><th>Passenger</th><th>Journey Date</th><th>Status</th></tr></thead><tbody>';
-            
+
             recentBookings.forEach(ticket => {
                 const statusColor = ticket.status === 'confirmed' ? 'green' : ticket.status === 'cancelled' ? 'red' : 'orange';
                 html += `
@@ -113,14 +106,19 @@ async function loadDashboard() {
                     </tr>
                 `;
             });
-            
+
             html += '</tbody></table>';
             html += '<p style="text-align: center; margin-top: 1rem;"><a href="/tickets" class="btn btn-primary">View All Tickets</a></p>';
             recentContainer.innerHTML = html;
         }
-        
+
     } catch (error) {
-        showMessage('Error loading dashboard: ' + error.message, 'error');
+        // Not authenticated or API error - redirect to login
+        console.error('Dashboard error:', error);
+        showMessage('Please login to access dashboard', 'error');
+        setTimeout(() => {
+            window.location.href = '/login';
+        }, 1000);
     }
 }
 
