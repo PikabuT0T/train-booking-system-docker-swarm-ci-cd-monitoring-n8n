@@ -8,6 +8,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  OWNER_LC: pikabut0t
   IMAGE_NAME: ${{ github.repository_owner }}/train-booking-app
 
 jobs:
@@ -76,13 +77,18 @@ jobs:
     
     steps:
       - name: Deploy to server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            cd ~/dockerProjects/train-booking-system
-            docker pull ghcr.io/${{ github.repository_owner }}/train-booking-app:latest
-            docker service update --image ghcr.io/${{ github.repository_owner }}/train-booking-app:latest train-booking_flask_app
-            docker service update --image ghcr.io/${{ github.repository_owner }}/train-booking-app:latest train-booking_db_migrate
+        run: |
+          cd ~/dockerProjects/train-booking-system
+          docker pull ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest
+          docker service update --image ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest train-booking_flask_app
+          docker service update --image ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest train-booking_db_migrate
+#        uses: appleboy/ssh-action@v1.0.3
+#        with:
+#          host: ${{ secrets.SERVER_HOST }}
+#          username: ${{ secrets.SERVER_USER }}
+#          key: ${{ secrets.SERVER_SSH_KEY }}
+#          script: |
+#            cd ~/dockerProjects/train-booking-system
+#            docker pull ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest
+#            docker service update --image ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest train-booking_flask_app
+#            docker service update --image ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest train-booking_db_migrate
