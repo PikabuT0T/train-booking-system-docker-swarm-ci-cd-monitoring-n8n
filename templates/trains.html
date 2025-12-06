@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}All Trains - Train Booking System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="text-align: center; margin-bottom: 2rem;">All Available Trains</h2>
+    
+    <div style="margin-bottom: 2rem;">
+        <input type="text" id="search-input" placeholder="Search by train number or name..." 
+               style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;">
+    </div>
+    
+    <div id="trains-container">
+        <p style="text-align: center;">Loading trains...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let allTrains = [];
+
+async function loadTrains() {
+    try {
+        const response = await fetch(API_BASE_URL + '/trains/');
+        const data = await response.json();
+        
+        allTrains = data.trains;
+        displayTrains(allTrains);
+    } catch (error) {
+        document.getElementById('trains-container').innerHTML = 
+            '<div class="alert alert-error">Error loading trains</div>';
+    }
+}
+
+function displayTrains(trains) {
+    const container = document.getElementById('trains-container');
+    
+    if (trains.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">No trains found.</div>';
+        return;
+    }
+    
+    let html = '<table>';
+    html += '<thead><tr><th>Train Number</th><th>Train Name</th><th>Type</th><th>Total Seats</th><th>Status</th></tr></thead><tbody>';
+    
+    trains.forEach(train => {
+        const statusColor = train.status === 'active' ? 'green' : train.status === 'inactive' ? 'orange' : 'red';
+        html += `
+            <tr>
+                <td><strong>${train.train_number}</strong></td>
+                <td>${train.train_name}</td>
+                <td>${train.train_type.charAt(0).toUpperCase() + train.train_type.slice(1)}</td>
+                <td>${train.total_seats}</td>
+                <td style="color: ${statusColor}; font-weight: bold;">${train.status.toUpperCase()}</td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+// Search functionality
+document.getElementById('search-input').addEventListener('input', (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    
+    const filteredTrains = allTrains.filter(train => 
+        train.train_number.toLowerCase().includes(searchTerm) ||
+        train.train_name.toLowerCase().includes(searchTerm)
+    );
+    
+    displayTrains(filteredTrains);
+});
+
+// Load trains on page load
+loadTrains();
+</script>
+{% endblock %}

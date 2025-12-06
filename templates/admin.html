@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Train Booking System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="text-align: center; margin-bottom: 2rem;">Admin Dashboard</h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
+        <div style="background: #e3f2fd; padding: 2rem; border-radius: 8px; text-align: center;">
+            <h3 style="color: #1976d2;">Total Users</h3>
+            <p id="total-users" style="font-size: 2.5rem; font-weight: bold; color: #1976d2;">0</p>
+        </div>
+        
+        <div style="background: #f3e5f5; padding: 2rem; border-radius: 8px; text-align: center;">
+            <h3 style="color: #7b1fa2;">Total Trains</h3>
+            <p id="total-trains" style="font-size: 2.5rem; font-weight: bold; color: #7b1fa2;">0</p>
+        </div>
+        
+        <div style="background: #e8f5e9; padding: 2rem; border-radius: 8px; text-align: center;">
+            <h3 style="color: #388e3c;">Total Routes</h3>
+            <p id="total-routes" style="font-size: 2.5rem; font-weight: bold; color: #388e3c;">0</p>
+        </div>
+        
+        <div style="background: #fff3e0; padding: 2rem; border-radius: 8px; text-align: center;">
+            <h3 style="color: #f57c00;">Total Bookings</h3>
+            <p id="total-bookings" style="font-size: 2.5rem; font-weight: bold; color: #f57c00;">0</p>
+        </div>
+    </div>
+    
+    <h3 style="margin-bottom: 1rem;">Management Sections</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+        <a href="/admin/trains" class="btn btn-primary" style="text-align: center; padding: 1.5rem;">
+            üöÇÌ∫Ç Manage Trains
+        </a>
+        <a href="/admin/routes" class="btn btn-primary" style="text-align: center; padding: 1.5rem;">
+            üõ§Ìª§Ô∏è Manage Routes
+        </a>
+        <a href="/admin/schedules" class="btn btn-primary" style="text-align: center; padding: 1.5rem;">
+            üìÖÌ≥Ö Manage Schedules
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 1rem;">Recent Bookings (All Users)</h3>
+    <div id="recent-bookings">
+        <p style="text-align: center;">Loading bookings...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadAdminDashboard() {
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    if (!token || user.role !== 'admin') {
+        alert('Admin access required');
+        window.location.href = '/';
+        return;
+    }
+    
+    try {
+        // Load statistics
+        const [usersData, trainsData, routesData, ticketsData] = await Promise.all([
+            apiRequest(API_BASE_URL + '/users/'),
+            fetch(API_BASE_URL + '/trains/').then(r => r.json()),
+            fetch(API_BASE_URL + '/routes/').then(r => r.json()),
+            apiRequest(API_BASE_URL + '/tickets/')
+        ]);
+        
+        document.getElementById('total-users').textContent = usersData.users.length;
+        document.getElementById('total-trains').textContent = trainsData.trains.length;
+        document.getElementById('total-routes').textContent = routesData.routes.length;
+        document.getElementById('total-bookings').textContent = ticketsData.tickets.length;
+        
+        // Display recent bookings
+        const recentBookings = ticketsData.tickets.slice(0, 10);
+        const recentContainer = document.getElementById('recent-bookings');
+        
+        if (recentBookings.length === 0) {
+            recentContainer.innerHTML = '<div class="alert alert-info">No bookings yet.</div>';
+        } else {
+            let html = '<table>';
+            html += '<thead><tr><th>PNR</th><th>Passenger</th><th>Journey Date</th><th>Fare</th><th>Status</th><th>Booking Date</th></tr></thead><tbody>';
+            
+            recentBookings.forEach(ticket => {
+                const statusColor = ticket.status === 'confirmed' ? 'green' : ticket.status === 'cancelled' ? 'red' : 'orange';
+                html += `
+                    <tr>
+                        <td><strong>${ticket.pnr_number}</strong></td>
+                        <td>${ticket.passenger_name}</td>
+                        <td>${ticket.journey_date}</td>
+                        <td>‚Çπ${ticket.fare}</td>
+                        <td style="color: ${statusColor}; font-weight: bold;">${ticket.status.toUpperCase()}</td>
+                        <td>${ticket.booking_date}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            recentContainer.innerHTML = html;
+        }
+        
+    } catch (error) {
+        showMessage('Error loading admin dashboard: ' + error.message, 'error');
+    }
+}
+
+// Load dashboard on page load
+loadAdminDashboard();
+</script>
+{% endblock %}

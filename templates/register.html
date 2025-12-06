@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Train Booking System{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 3rem auto;">
+    <h2 style="text-align: center; margin-bottom: 2rem;">Create New Account</h2>
+    
+    <form id="register-form">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="full_name">Full Name</label>
+            <input type="text" id="full_name" name="full_name" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" name="phone">
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required minlength="6">
+        </div>
+        
+        <div class="form-group">
+            <label for="confirm_password">Confirm Password</label>
+            <input type="password" id="confirm_password" name="confirm_password" required>
+        </div>
+        
+        <button type="submit" class="btn btn-success" style="width: 100%;">Register</button>
+    </form>
+    
+    <p style="text-align: center; margin-top: 1rem;">
+        Already have an account? <a href="/login" style="color: #3498db;">Login here</a>
+    </p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('register-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    
+    if (password !== confirmPassword) {
+        showMessage('Passwords do not match!', 'error');
+        return;
+    }
+    
+    const formData = {
+        username: document.getElementById('username').value,
+        email: document.getElementById('email').value,
+        full_name: document.getElementById('full_name').value,
+        phone: document.getElementById('phone').value,
+        password: password
+    };
+    
+    try {
+        const response = await fetch(API_BASE_URL + '/auth/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showMessage('Registration successful! Please login.', 'success');
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 2000);
+        } else {
+            showMessage(data.error || 'Registration failed', 'error');
+        }
+    } catch (error) {
+        showMessage('An error occurred during registration', 'error');
+        console.error('Registration error:', error);
+    }
+});
+</script>
+{% endblock %}

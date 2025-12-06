@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Train Booking System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1 style="text-align: center; color: #2c3e50; margin-bottom: 2rem;">Welcome to Train Booking System</h1>
+    <p style="text-align: center; font-size: 1.2rem; color: #7f8c8d; margin-bottom: 3rem;">
+        Book your train tickets easily and securely
+    </p>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-top: 3rem;">
+        <div style="text-align: center; padding: 2rem; background: #ecf0f1; border-radius: 8px;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">&#128269;</div>
+            <h3>Search Trains</h3>
+            <p>Find trains between your source and destination</p>
+            <a href="/search" class="btn btn-primary" style="margin-top: 1rem;">Search Now</a>
+        </div>
+        
+        <div style="text-align: center; padding: 2rem; background: #ecf0f1; border-radius: 8px;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">&#128646;</div>
+            <h3>View All Trains</h3>
+            <p>Browse all available trains and their schedules</p>
+            <a href="/trains" class="btn btn-primary" style="margin-top: 1rem;">View Trains</a>
+        </div>
+        
+        <div style="text-align: center; padding: 2rem; background: #ecf0f1; border-radius: 8px;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">&#127915;</div>
+            <h3>My Bookings</h3>
+            <p>View and manage your train ticket bookings</p>
+            <a href="/tickets" class="btn btn-primary" style="margin-top: 1rem;">My Tickets</a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2 style="text-align: center; margin-bottom: 2rem;">Quick PNR Status Check</h2>
+    <form id="pnr-form" style="max-width: 500px; margin: 0 auto;">
+        <div class="form-group">
+            <input type="text" id="pnr-input" placeholder="Enter 10-digit PNR number" maxlength="10" required>
+        </div>
+        <button type="submit" class="btn btn-success" style="width: 100%;">Check Status</button>
+    </form>
+    <div id="pnr-result" style="margin-top: 2rem;"></div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('pnr-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const pnr = document.getElementById('pnr-input').value;
+    const resultDiv = document.getElementById('pnr-result');
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/tickets/pnr/${pnr}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            const ticket = data.ticket;
+            const schedule = ticket.schedule || {};
+            
+            resultDiv.innerHTML = `
+                <div class="alert alert-success">
+                    <h3>Ticket Found!</h3>
+                    <p><strong>PNR:</strong> ${ticket.pnr_number}</p>
+                    <p><strong>Passenger:</strong> ${ticket.passenger_name}</p>
+                    <p><strong>Train:</strong> ${schedule.train_name || 'N/A'} (${schedule.train_number || 'N/A'})</p>
+                    <p><strong>From:</strong> ${schedule.source_station || 'N/A'}</p>
+                    <p><strong>To:</strong> ${schedule.destination_station || 'N/A'}</p>
+                    <p><strong>Journey Date:</strong> ${ticket.journey_date}</p>
+                    <p><strong>Seat Number:</strong> ${ticket.seat_number || 'Not assigned'}</p>
+                    <p><strong>Status:</strong> <span style="color: ${ticket.status === 'confirmed' ? 'green' : 'orange'}; font-weight: bold;">${ticket.status.toUpperCase()}</span></p>
+                    <p><strong>Fare:</strong> Rs.${ticket.fare}</p>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `<div class="alert alert-error">${data.error}</div>`;
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="alert alert-error">Error checking PNR status</div>`;
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Manage Trains{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Manage Trains</h2>
+    
+    <button class="btn btn-primary" onclick="showAddForm()">Add New Train</button>
+    
+    <div id="add-form" style="display: none; margin-top: 2rem; padding: 2rem; background: #f8f9fa; border-radius: 8px;">
+        <h3>Add New Train</h3>
+        <form id="train-form">
+            <div class="form-group">
+                <label for="train_number">Train Number</label>
+                <input type="text" id="train_number" required>
+            </div>
+            <div class="form-group">
+                <label for="train_name">Train Name</label>
+                <input type="text" id="train_name" required>
+            </div>
+            <div class="form-group">
+                <label for="train_type">Train Type</label>
+                <select id="train_type" required>
+                    <option value="express">Express</option>
+                    <option value="local">Local</option>
+                    <option value="superfast">Superfast</option>
+                    <option value="premium">Premium</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="total_seats">Total Seats</label>
+                <input type="number" id="total_seats" required min="1">
+            </div>
+            <button type="submit" class="btn btn-success">Add Train</button>
+            <button type="button" class="btn btn-danger" onclick="hideAddForm()">Cancel</button>
+        </form>
+    </div>
+    
+    <div id="trains-container" style="margin-top: 2rem;">
+        <p>Loading trains...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showAddForm() {
+    document.getElementById('add-form').style.display = 'block';
+}
+
+function hideAddForm() {
+    document.getElementById('add-form').style.display = 'none';
+    document.getElementById('train-form').reset();
+}
+
+async function loadTrains() {
+    try {
+        const response = await fetch(API_BASE_URL + '/trains/');
+        const data = await response.json();
+        
+        const container = document.getElementById('trains-container');
+        
+        if (data.trains.length === 0) {
+            container.innerHTML = '<div class="alert alert-info">No trains found.</div>';
+            return;
+        }
+        
+        let html = '<table>';
+        html += '<thead><tr><th>Number</th><th>Name</th><th>Type</th><th>Seats</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+        
+        data.trains.forEach(train => {
+            html += `
+                <tr>
+                    <td>${train.train_number}</td>
+                    <td>${train.train_name}</td>
+                    <td>${train.train_type}</td>
+                    <td>${train.total_seats}</td>
+                    <td>${train.status}</td>
+                    <td>
+                        <button class="btn btn-danger" onclick="deleteTrain(${train.id})">Delete</button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    } catch (error) {
+        document.getElementById('trains-container').innerHTML = 
+            '<div class="alert alert-error">Error loading trains</div>';
+    }
+}
+
+document.getElementById('train-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = {
+        train_number: document.getElementById('train_number').value,
+        train_name: document.getElementById('train_name').value,
+        train_type: document.getElementById('train_type').value,
+        total_seats: parseInt(document.getElementById('total_seats').value)
+    };
+    
+    try {
+        await apiRequest(API_BASE_URL + '/trains/', {
+            method: 'POST',
+            body: JSON.stringify(formData)
+        });
+        
+        showMessage('Train added successfully', 'success');
+        hideAddForm();
+        loadTrains();
+    } catch (error) {
+        showMessage('Error adding train: ' + error.message, 'error');
+    }
+});
+
+async function deleteTrain(trainId) {
+    if (!confirm('Are you sure you want to delete this train?')) {
+        return;
+    }
+    
+    try {
+        await apiRequest(API_BASE_URL + '/trains/' + trainId, {
+            method: 'DELETE'
+        });
+        
+        showMessage('Train deleted successfully', 'success');
+        loadTrains();
+    } catch (error) {
+        showMessage('Error deleting train: ' + error.message, 'error');
+    }
+}
+
+// Check if user is admin
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+if (user.role !== 'admin') {
+    alert('Admin access required');
+    window.location.href = '/';
+} else {
+    loadTrains();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # MySQL Database Service
+  mysql:
+    image: mysql:5.7
+    container_name: train_booking_mysql
+#    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: train_booking_db
+      MYSQL_USER: trainuser
+      MYSQL_PASSWORD: trainpass
+    ports:
+      - "3306:3306"
+#   volumes:
+#      - mysql_data:/var/lib/mysql
+#      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+#    networks:
+#      - train_network
+#    healthcheck:
+#      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+
+  # Flask Application Service
+  flask_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: train_booking_app
+#    restart: always
+    environment:
+      FLASK_ENV: development
+      SECRET_KEY: your-secret-key-change-in-production
+      JWT_SECRET_KEY: your-jwt-secret-key-change-in-production
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: trainuser
+      MYSQL_PASSWORD: trainpass
+      MYSQL_DATABASE: train_booking_db
+    ports:
+      - "8089:5000"
+#    volumes:
+#      - .:/app
+    depends_on:
+      - mysql
+#        condition: service_healthy
+#    networks:
+#      - train_network
+    command: >
+      sh -c "
+        echo 'Waiting for MySQL to be ready...' &&
+        sleep 20 &&
+        python app.py
+      "
+
+volumes:
+  mysql_data:
+    driver: local
+
+#networks:
+#  train_network:
+#    driver: bridge

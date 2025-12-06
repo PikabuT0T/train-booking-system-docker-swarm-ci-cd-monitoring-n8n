@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Book Ticket - Train Booking System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="text-align: center; margin-bottom: 2rem;">Book Your Ticket</h2>
+    
+    <div id="schedule-info" style="background: #ecf0f1; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+        <p style="text-align: center;">Loading schedule information...</p>
+    </div>
+    
+    <form id="booking-form" style="max-width: 600px; margin: 0 auto;">
+        <input type="hidden" id="schedule_id" value="{{ schedule_id }}">
+        
+        <div class="form-group">
+            <label for="journey_date">Journey Date</label>
+            <input type="date" id="journey_date" name="journey_date" required min="">
+        </div>
+        
+        <div class="form-group">
+            <label for="passenger_name">Passenger Name</label>
+            <input type="text" id="passenger_name" name="passenger_name" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="passenger_age">Passenger Age</label>
+            <input type="number" id="passenger_age" name="passenger_age" required min="1" max="120">
+        </div>
+        
+        <div class="form-group">
+            <label for="passenger_gender">Gender</label>
+            <select id="passenger_gender" name="passenger_gender" required>
+                <option value="">Select Gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+        
+        <button type="submit" class="btn btn-success" style="width: 100%;">Book Ticket</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const scheduleId = {{ schedule_id }};
+
+// Set minimum date to today
+document.getElementById('journey_date').min = new Date().toISOString().split('T')[0];
+
+// Load schedule information
+async function loadSchedule() {
+    try {
+        const response = await fetch(API_BASE_URL + '/schedules/' + scheduleId);
+        const data = await response.json();
+        
+        if (response.ok) {
+            const schedule = data.schedule;
+            document.getElementById('schedule-info').innerHTML = `
+                <h3 style="text-align: center; margin-bottom: 1rem;">${schedule.train_name}</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div><strong>Train Number:</strong> ${schedule.train_number}</div>
+                    <div><strong>Fare:</strong> ₹${schedule.base_fare}</div>
+                    <div><strong>From:</strong> ${schedule.source_station}</div>
+                    <div><strong>To:</strong> ${schedule.destination_station}</div>
+                    <div><strong>Departure:</strong> ${schedule.departure_time}</div>
+                    <div><strong>Arrival:</strong> ${schedule.arrival_time}</div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        showMessage('Error loading schedule information', 'error');
+    }
+}
+
+// Handle booking submission
+document.getElementById('booking-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+        showMessage('Please login to book tickets', 'error');
+        setTimeout(() => {
+            window.location.href = '/login';
+        }, 2000);
+        return;
+    }
+    
+    const formData = {
+        schedule_id: parseInt(scheduleId),
+        journey_date: document.getElementById('journey_date').value,
+        passenger_name: document.getElementById('passenger_name').value,
+        passenger_age: parseInt(document.getElementById('passenger_age').value),
+        passenger_gender: document.getElementById('passenger_gender').value
+    };
+    
+    try {
+        const response = await apiRequest(API_BASE_URL + '/tickets/', {
+            method: 'POST',
+            body: JSON.stringify(formData)
+        });
+        
+        showMessage('Ticket booked successfully! PNR: ' + response.ticket.pnr_number, 'success');
+        setTimeout(() => {
+            window.location.href = '/tickets';
+        }, 2000);
+    } catch (error) {
+        showMessage(error.message || 'Booking failed', 'error');
+    }
+});
+
+// Load schedule on page load
+loadSchedule();
+</script>
+{% endblock %}

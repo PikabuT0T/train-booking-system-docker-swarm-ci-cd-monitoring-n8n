@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}My Tickets - Train Booking System{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2 style="text-align: center; margin-bottom: 2rem;">My Tickets</h2>
+    
+    <div id="tickets-container">
+        <p style="text-align: center;">Loading your tickets...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function loadTickets() {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+        window.location.href = '/login';
+        return;
+    }
+    
+    try {
+        const data = await apiRequest(API_BASE_URL + '/tickets/');
+        
+        const container = document.getElementById('tickets-container');
+        
+        if (data.tickets.length === 0) {
+            container.innerHTML = '<div class="alert alert-info">You have no tickets booked yet.</div>';
+            return;
+        }
+        
+        let html = '<table>';
+        html += '<thead><tr><th>PNR</th><th>Passenger</th><th>Journey Date</th><th>Seat</th><th>Fare</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+        
+        data.tickets.forEach(ticket => {
+            const statusColor = ticket.status === 'confirmed' ? 'green' : ticket.status === 'cancelled' ? 'red' : 'orange';
+            html += `
+                <tr>
+                    <td>${ticket.pnr_number}</td>
+                    <td>${ticket.passenger_name}</td>
+                    <td>${ticket.journey_date}</td>
+                    <td>${ticket.seat_number || 'Not assigned'}</td>
+                    <td>₹${ticket.fare}</td>
+                    <td style="color: ${statusColor}; font-weight: bold;">${ticket.status.toUpperCase()}</td>
+                    <td>
+                        ${ticket.status !== 'cancelled' ? 
+                            `<button class="btn btn-danger" onclick="cancelTicket(${ticket.id})">Cancel</button>` : 
+                            'Cancelled'}
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    } catch (error) {
+        document.getElementById('tickets-container').innerHTML = 
+            '<div class="alert alert-error">Error loading tickets: ' + error.message + '</div>';
+    }
+}
+
+async function cancelTicket(ticketId) {
+    if (!confirm('Are you sure you want to cancel this ticket?')) {
+        return;
+    }
+    
+    try {
+        await apiRequest(API_BASE_URL + '/tickets/' + ticketId + '/cancel', {
+            method: 'PUT'
+        });
+        
+        showMessage('Ticket cancelled successfully', 'success');
+        loadTickets();
+    } catch (error) {
+        showMessage('Error cancelling ticket: ' + error.message, 'error');
+    }
+}
+
+// Load tickets on page load
+loadTickets();
+</script>
+{% endblock %}
