@@ -2,7 +2,13 @@
 Pytest configuration and fixtures for Train Booking System tests
 """
 import pytest
+import sys
+import os
 from datetime import date, time, timedelta
+
+# Add parent directory to path so we can import app modules
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from app import create_app
 from models import db, User, Train, Route, Schedule, Ticket, Seat, Payment
 from config import TestingConfig
