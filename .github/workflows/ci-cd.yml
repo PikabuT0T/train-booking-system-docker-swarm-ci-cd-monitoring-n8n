@@ -125,3 +125,5 @@ jobs:
           docker pull ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest
           docker service update --image ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest train-booking_flask_app
           docker service update --image ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest train-booking_db_migrate
+          docker service update --force train-booking_flask_app
+
