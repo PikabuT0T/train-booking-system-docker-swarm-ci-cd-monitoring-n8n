@@ -43,16 +43,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-cov
+      - name: Build testing image
+        run: docker build --target testing -t myapp:testing .
 
       - name: Wait for MySQL
         run: |
@@ -64,7 +56,16 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest tests/ -v --tb=short
+          docker run --rm \
+            --network host \
+            -e MYSQL_HOST=127.0.0.1 \
+            -e MYSQL_PORT=3306 \
+            -e MYSQL_USER=trainuser \
+            -e MYSQL_PASSWORD=trainpass \
+            -e MYSQL_DATABASE=train_booking_db \
+            -e SECRET_KEY=test-secret-key \
+            myapp:testing \
+            pytest tests/ -v --tb=short
 
   build-and-push:
     needs: test
@@ -99,10 +100,13 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          target: production
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy:
     needs: build-and-push
