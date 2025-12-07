@@ -14,6 +14,31 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: train_booking_db
+          MYSQL_USER: trainuser
+          MYSQL_PASSWORD: trainpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: 3306
+      MYSQL_USER: trainuser
+      MYSQL_PASSWORD: trainpass
+      MYSQL_DATABASE: train_booking_db
+      SECRET_KEY: test-secret-key
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -27,10 +52,19 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Wait for MySQL
+        run: |
+          while ! mysqladmin ping -h"127.0.0.1" --silent; do
+            echo "Waiting for MySQL..."
+            sleep 2
+          done
+          echo "MySQL is ready!"
 
       - name: Run tests
         run: |
-          pytest tests/ -v || echo "No tests found, skipping..."
+          pytest tests/ -v --tb=short
 
   build-and-push:
     needs: test
@@ -74,7 +108,7 @@ jobs:
     needs: build-and-push
     runs-on: self-hosted
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    
+
     steps:
       - name: Deploy to server
         run: |
@@ -82,13 +116,3 @@ jobs:
           docker pull ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest
           docker service update --image ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest train-booking_flask_app
           docker service update --image ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest train-booking_db_migrate
-#        uses: appleboy/ssh-action@v1.0.3
-#        with:
-#          host: ${{ secrets.SERVER_HOST }}
-#          username: ${{ secrets.SERVER_USER }}
-#          key: ${{ secrets.SERVER_SSH_KEY }}
-#          script: |
-#            cd ~/dockerProjects/train-booking-system
-#            docker pull ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest
-#            docker service update --image ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest train-booking_flask_app
-#            docker service update --image ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest train-booking_db_migrate

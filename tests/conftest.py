@@ -9,6 +9,15 @@ from datetime import date, time, timedelta
 # Add parent directory to path so we can import app modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+# Set environment variables BEFORE importing app
+# This ensures the app uses these settings when create_app() is called
+os.environ.setdefault('MYSQL_HOST', '127.0.0.1')
+os.environ.setdefault('MYSQL_PORT', '3306')
+os.environ.setdefault('MYSQL_USER', 'trainuser')
+os.environ.setdefault('MYSQL_PASSWORD', 'trainpass')
+os.environ.setdefault('MYSQL_DATABASE', 'train_booking_db')
+os.environ.setdefault('SECRET_KEY', 'test-secret-key')
+
 from app import create_app
 from models import db, User, Train, Route, Schedule, Ticket, Seat, Payment
 from config import TestingConfig
