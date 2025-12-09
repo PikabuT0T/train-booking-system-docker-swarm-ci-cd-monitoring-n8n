@@ -1,11 +1,11 @@
-# ğŸš‚íº‚ Train Booking System
+# Booking System
 
 A comprehensive full-stack train booking system built with Python Flask, MySQL, and Docker.
 
-## ğŸ“‹í³‹ Features
+## Features
 
 ### User Features
-- User registration and authentication (JWT-based)
+- User registration and authentication (Session-based)
 - Search trains by source and destination
 - View train schedules and availability
 - Book tickets with passenger details
@@ -21,13 +21,12 @@ A comprehensive full-stack train booking system built with Python Flask, MySQL, 
 - View all bookings and payments
 - User management
 
-## ğŸ—í¿—ï¸ Architecture
+## Architecture
 
 ### Backend
 - **Framework**: Flask 3.0
 - **ORM**: SQLAlchemy
-- **Authentication**: Flask-JWT-Extended
-- **Database**: MySQL 8.0
+- **Database**: MySQL 5.7
 - **API**: RESTful API with 41 endpoints
 
 ### Frontend
@@ -40,7 +39,7 @@ A comprehensive full-stack train booking system built with Python Flask, MySQL, 
 - **Database**: MySQL in Docker container
 - **Application**: Flask in Docker container
 
-## ğŸ“í³ Project Structure
+## Project Structure
 
 ```
 train-booking-system/
@@ -73,7 +72,7 @@ train-booking-system/
     â””â”€â”€ admin_trains.html      # Admin train management
 ```
 
-## ğŸš€íº€ Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -125,7 +124,7 @@ docker exec -it train_booking_app python seed_data.py
 8. **Access the application**
 - Open your browser and navigate to: `http://localhost:5000`
 
-## ğŸ”‘í´‘ Default Credentials
+## Default Credentials
 
 After running the seed script, you can login with:
 
@@ -137,7 +136,7 @@ After running the seed script, you can login with:
 - Username: `john_doe` | Password: `password123`
 - Username: `jane_smith` | Password: `password123`
 
-## ğŸ“¡í³¡ API Endpoints
+## API Endpoints
 
 ### Authentication (3 endpoints)
 - `POST /api/auth/register` - Register new user
@@ -199,7 +198,7 @@ After running the seed script, you can login with:
 
 **Total: 41 API endpoints**
 
-## ğŸ§ªí·ª Testing the Application
+## Testing the Application
 
 ### Testing User Flow
 
@@ -248,7 +247,7 @@ After running the seed script, you can login with:
    - Access admin dashboard
    - View system-wide statistics
 
-## ğŸ›í°› Troubleshooting
+## Troubleshooting
 
 ### Container Issues
 
@@ -289,7 +288,7 @@ docker exec -it train_booking_app /bin/bash
 docker exec -it train_booking_app python seed_data.py
 ```
 
-## ğŸ› í» ï¸ Development
+## Development
 
 ### Running without Docker
 
@@ -322,7 +321,7 @@ python app.py
 python seed_data.py
 ```
 
-## ğŸ“Ší³Š Database Schema
+## Database Schema
 
 The system uses 7 main tables:
 
@@ -334,29 +333,17 @@ The system uses 7 main tables:
 6. **seats** - Seat availability management
 7. **payments** - Payment transactions
 
-## ğŸ”’í´’ Security Features
+## Security Features
 
 - Password hashing using Werkzeug
-- JWT-based authentication
+- Session-based authentication
 - Role-based access control (User/Admin)
 - Protected API endpoints
 - SQL injection prevention (SQLAlchemy ORM)
 - CORS enabled
 
-## ğŸ“ˆí³ˆ Future Enhancements
 
-- Payment gateway integration
-- Email notifications
-- SMS alerts
-- Real-time seat availability
-- Train tracking
-- Multiple passenger booking
-- Waitlist management
-- Rating and reviews
-- Mobile app
-- Analytics dashboard
-
-## ğŸ¤í´ Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -364,17 +351,17 @@ The system uses 7 main tables:
 4. Push to the branch
 5. Create a Pull Request
 
-## ğŸ“„í³„ License
+## License
 
 This project is open source and available under the MIT License.
 
-## ğŸ‘¥í±¥ Support
+## Support
 
 For issues and questions:
 - Create an issue in the repository
 - Contact the development team
 
-## ğŸ™í¹ Acknowledgments
+## Acknowledgments
 
 - Flask framework
 - SQLAlchemy ORM
