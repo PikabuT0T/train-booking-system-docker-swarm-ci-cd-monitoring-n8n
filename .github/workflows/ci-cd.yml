@@ -121,6 +121,6 @@ jobs:
             train-booking_flask_app
           
           # Update db_migrate (runs once anyway)
-          docker service update --image $IMAGE train-booking_db_migrate || true
+#          docker service update --image $IMAGE train-booking_db_migrate || true
           
-          echo "✅ Deployment complete!"
+#          echo "✅ Deployment complete!"
