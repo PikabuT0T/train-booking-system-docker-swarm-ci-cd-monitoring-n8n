@@ -1,12 +1,15 @@
+# Core Flask
 Flask==3.0.0
 Flask-SQLAlchemy==3.1.1
-Flask-JWT-Extended==4.5.3
 Flask-CORS==4.0.0
+Werkzeug==3.0.1
+Flask-JWT-Extended==4.5.3
+# Database
 PyMySQL==1.1.0
 cryptography==41.0.7
-Werkzeug==3.0.1
+
+# Config
 python-dotenv==1.0.0
-mysql-connector-python==8.2.0
-prometheus-client==0.19.0
-pytest>=7.0.0
-pytest-cov>=4.0.0
+
+# Monitoring (optional - remove if not using Prometheus)
+#prometheus-client==0.19.0
