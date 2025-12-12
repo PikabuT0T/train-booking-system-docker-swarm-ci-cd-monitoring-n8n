@@ -1,50 +1,271 @@
 {% extends "base.html" %}
-{% block title %}Admin - Routes{% endblock %}
+
+{% block title %}Manage Routes - Admin{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <h2>Manage Routes</h2>
-    <div class="card">
-        <div class="card-body">
-            <table class="table" id="routesTable">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Origin</th>
-                        <th>Destination</th>
-                        <th>Distance (km)</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>Manage Routes</h2>
+        <a href="/admin" class="btn btn-secondary">← Back to Dashboard</a>
+    </div>
+
+    <!-- Add New Route Form -->
+    <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+        <h3 style="margin-bottom: 1rem;">Add New Route</h3>
+        <form id="add-route-form">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div class="form-group">
+                    <label for="route_name">Route Name</label>
+                    <input type="text" id="route_name" name="route_name" required placeholder="e.g., Kyiv-Lviv Express">
+                </div>
+                <div class="form-group">
+                    <label for="source_station">Source Station</label>
+                    <input type="text" id="source_station" name="source_station" required placeholder="e.g., Kyiv">
+                </div>
+                <div class="form-group">
+                    <label for="destination_station">Destination Station</label>
+                    <input type="text" id="destination_station" name="destination_station" required placeholder="e.g., Lviv">
+                </div>
+                <div class="form-group">
+                    <label for="distance_km">Distance (km)</label>
+                    <input type="number" id="distance_km" name="distance_km" required min="1" step="0.01" placeholder="e.g., 540">
+                </div>
+                <div class="form-group">
+                    <label for="duration_hours">Duration (hours)</label>
+                    <input type="number" id="duration_hours" name="duration_hours" required min="0.1" step="0.01" placeholder="e.g., 5.5">
+                </div>
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status" name="status">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">Add Route</button>
+        </form>
+    </div>
+
+    <!-- Routes Table -->
+    <h3 style="margin-bottom: 1rem;">All Routes</h3>
+    <div id="routes-container">
+        <p style="text-align: center;">Loading routes...</p>
     </div>
 </div>
-<script>
-fetch('/api/routes')
-    .then(r => r.json())
-    .then(routes => {
-        const tbody = document.querySelector('#routesTable tbody');
-        routes.forEach(route => {
-            tbody.innerHTML += `
-                <tr>
-                    <td>${route.id}</td>
-                    <td>${route.origin}</td>
-                    <td>${route.destination}</td>
-                    <td>${route.distance || '-'}</td>
-                    <td>
-                        <button class="btn btn-sm btn-danger" onclick="deleteRoute(${route.id})">Delete</button>
-                    </td>
-                </tr>
-            `;
-        });
-    });
 
-function deleteRoute(id) {
-    if(confirm('Delete this route?')) {
-        fetch('/api/routes/' + id, {method: 'DELETE'})
-            .then(() => location.reload());
+<!-- Edit Modal -->
+<div id="edit-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="background: white; max-width: 500px; margin: 5% auto; padding: 2rem; border-radius: 8px; max-height: 80vh; overflow-y: auto;">
+        <h3 style="margin-bottom: 1rem;">Edit Route</h3>
+        <form id="edit-route-form">
+            <input type="hidden" id="edit_route_id">
+            <div class="form-group">
+                <label for="edit_route_name">Route Name</label>
+                <input type="text" id="edit_route_name" name="route_name" required>
+            </div>
+            <div class="form-group">
+                <label for="edit_source_station">Source Station</label>
+                <input type="text" id="edit_source_station" name="source_station" required>
+            </div>
+            <div class="form-group">
+                <label for="edit_destination_station">Destination Station</label>
+                <input type="text" id="edit_destination_station" name="destination_station" required>
+            </div>
+            <div class="form-group">
+                <label for="edit_distance_km">Distance (km)</label>
+                <input type="number" id="edit_distance_km" name="distance_km" required min="1" step="0.01">
+            </div>
+            <div class="form-group">
+                <label for="edit_duration_hours">Duration (hours)</label>
+                <input type="number" id="edit_duration_hours" name="duration_hours" required min="0.1" step="0.01">
+            </div>
+            <div class="form-group">
+                <label for="edit_status">Status</label>
+                <select id="edit_status" name="status">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let allRoutes = [];
+
+async function loadRoutes() {
+    try {
+        // Check admin access
+        const authData = await apiRequest(API_BASE_URL + '/auth/check');
+        if (!authData.authenticated || authData.user.role !== 'admin') {
+            showMessage('Admin access required', 'error');
+            setTimeout(() => window.location.href = '/', 1000);
+            return;
+        }
+
+        const response = await fetch(API_BASE_URL + '/routes/');
+        const data = await response.json();
+        allRoutes = data.routes || [];
+        renderRoutes();
+    } catch (error) {
+        console.error('Error loading routes:', error);
+        showMessage('Error loading routes', 'error');
     }
 }
+
+function renderRoutes() {
+    const container = document.getElementById('routes-container');
+    
+    if (allRoutes.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">No routes found. Add your first route above.</div>';
+        return;
+    }
+
+    let html = `
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Route Name</th>
+                    <th>Source</th>
+                    <th>Destination</th>
+                    <th>Distance (km)</th>
+                    <th>Duration (hrs)</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    allRoutes.forEach(route => {
+        const statusColor = route.status === 'active' ? 'green' : 'red';
+        html += `
+            <tr>
+                <td>${route.id}</td>
+                <td><strong>${route.route_name}</strong></td>
+                <td>${route.source_station}</td>
+                <td>${route.destination_station}</td>
+                <td>${route.distance_km}</td>
+                <td>${route.duration_hours}</td>
+                <td style="color: ${statusColor}; font-weight: bold;">${route.status.toUpperCase()}</td>
+                <td>
+                    <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;" onclick="editRoute(${route.id})">Edit</button>
+                    <button class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;" onclick="deleteRoute(${route.id})">Delete</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+// Add new route
+document.getElementById('add-route-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = {
+        route_name: document.getElementById('route_name').value,
+        source_station: document.getElementById('source_station').value,
+        destination_station: document.getElementById('destination_station').value,
+        distance_km: parseFloat(document.getElementById('distance_km').value),
+        duration_hours: parseFloat(document.getElementById('duration_hours').value),
+        status: document.getElementById('status').value
+    };
+
+    try {
+        const response = await apiRequest(API_BASE_URL + '/routes/', {
+            method: 'POST',
+            body: JSON.stringify(formData)
+        });
+
+        showMessage('Route added successfully!', 'success');
+        document.getElementById('add-route-form').reset();
+        loadRoutes();
+    } catch (error) {
+        showMessage('Error adding route: ' + error.message, 'error');
+    }
+});
+
+// Edit route
+function editRoute(routeId) {
+    const route = allRoutes.find(r => r.id === routeId);
+    if (!route) return;
+
+    document.getElementById('edit_route_id').value = route.id;
+    document.getElementById('edit_route_name').value = route.route_name;
+    document.getElementById('edit_source_station').value = route.source_station;
+    document.getElementById('edit_destination_station').value = route.destination_station;
+    document.getElementById('edit_distance_km').value = route.distance_km;
+    document.getElementById('edit_duration_hours').value = route.duration_hours;
+    document.getElementById('edit_status').value = route.status;
+
+    document.getElementById('edit-modal').style.display = 'block';
+}
+
+function closeEditModal() {
+    document.getElementById('edit-modal').style.display = 'none';
+}
+
+document.getElementById('edit-route-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const routeId = document.getElementById('edit_route_id').value;
+    const formData = {
+        route_name: document.getElementById('edit_route_name').value,
+        source_station: document.getElementById('edit_source_station').value,
+        destination_station: document.getElementById('edit_destination_station').value,
+        distance_km: parseFloat(document.getElementById('edit_distance_km').value),
+        duration_hours: parseFloat(document.getElementById('edit_duration_hours').value),
+        status: document.getElementById('edit_status').value
+    };
+
+    try {
+        await apiRequest(API_BASE_URL + '/routes/' + routeId, {
+            method: 'PUT',
+            body: JSON.stringify(formData)
+        });
+
+        showMessage('Route updated successfully!', 'success');
+        closeEditModal();
+        loadRoutes();
+    } catch (error) {
+        showMessage('Error updating route: ' + error.message, 'error');
+    }
+});
+
+// Delete route
+async function deleteRoute(routeId) {
+    if (!confirm('Are you sure you want to delete this route? This will also delete all associated schedules.')) {
+        return;
+    }
+
+    try {
+        await apiRequest(API_BASE_URL + '/routes/' + routeId, {
+            method: 'DELETE'
+        });
+
+        showMessage('Route deleted successfully!', 'success');
+        loadRoutes();
+    } catch (error) {
+        showMessage('Error deleting route: ' + error.message, 'error');
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('edit-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'edit-modal') {
+        closeEditModal();
+    }
+});
+
+loadRoutes();
 </script>
 {% endblock %}
