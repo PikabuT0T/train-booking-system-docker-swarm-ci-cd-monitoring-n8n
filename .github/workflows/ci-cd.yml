@@ -27,8 +27,8 @@ jobs:
           - 3306:3306
         options: >-
           --health-cmd="mysqladmin ping"
-          --health-interval=10s
-          --health-timeout=5s
+          --health-interval=5s
+          --health-timeout=3s
           --health-retries=5
 
     env:
@@ -43,29 +43,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build testing image
-        run: docker build --target testing -t myapp:testing .
+      - name: Set up Python with cache
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
 
-      - name: Wait for MySQL
+      - name: Install dependencies
         run: |
-          while ! mysqladmin ping -h"127.0.0.1" --silent; do
-            echo "Waiting for MySQL..."
-            sleep 2
-          done
-          echo "MySQL is ready!"
+          pip install -r requirements.txt pytest pytest-cov
 
       - name: Run tests
-        run: |
-          docker run --rm \
-            --network host \
-            -e MYSQL_HOST=127.0.0.1 \
-            -e MYSQL_PORT=3306 \
-            -e MYSQL_USER=trainuser \
-            -e MYSQL_PASSWORD=trainpass \
-            -e MYSQL_DATABASE=train_booking_db \
-            -e SECRET_KEY=test-secret-key \
-            myapp:testing \
-            pytest tests/ -v --tb=short
+        run: pytest tests/ -v --tb=short
 
   build-and-push:
     needs: test
@@ -73,17 +62,13 @@ jobs:
     permissions:
       contents: read
       packages: write
-      attestations: write
-      id-token: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-#      - name: Set up Docker Buildx
-#        uses: docker/setup-buildx-action@v3
-#        with:
-#          driver: docker-container
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to Container Registry
         uses: docker/login-action@v3
@@ -109,9 +94,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-#          provenance: false
-#          cache-from: type=gha
-#          cache-to: type=gha,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
 
   deploy:
     needs: build-and-push
@@ -119,11 +104,23 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
 
     steps:
-      - name: Deploy to server
+      - name: Deploy to Docker Swarm
         run: |
-          cd ~/dockerProjects/train-booking-system
-          docker pull ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest
-          docker service update --image ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest train-booking_flask_app
-          docker service update --image ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest train-booking_db_migrate
-          docker service update --force train-booking_flask_app
-
+          IMAGE="ghcr.io/${{ env.OWNER_LC }}/train-booking-app:latest"
+          
+          # Pull new image
+          docker pull $IMAGE
+          
+          # Update flask_app with rolling update
+          docker service update \
+            --image $IMAGE \
+            --update-parallelism 1 \
+            --update-delay 10s \
+            --update-failure-action rollback \
+            --update-order start-first \
+            train-booking_flask_app
+          
+          # Update db_migrate (runs once anyway)
+          docker service update --image $IMAGE train-booking_db_migrate || true
+          
+          echo "✅ Deployment complete!"
