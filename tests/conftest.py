@@ -19,7 +19,7 @@ os.environ.setdefault('MYSQL_DATABASE', 'train_booking_db')
 os.environ.setdefault('SECRET_KEY', 'test-secret-key')
 
 from app import create_app
-from models import db, User, Train, Route, Schedule, Ticket, Seat, Payment
+from models import db, User, Train, Route, Schedule, Ticket, Seat
 from config import TestingConfig
 
 

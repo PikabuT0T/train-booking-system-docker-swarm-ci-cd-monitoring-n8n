@@ -37,7 +37,7 @@ async function loadTickets() {
                     <td>${ticket.passenger_name}</td>
                     <td>${ticket.journey_date}</td>
                     <td>${ticket.seat_number || 'Not assigned'}</td>
-                    <td>₹${ticket.fare}</td>
+                    <td>₴${ticket.fare}</td>
                     <td style="color: ${statusColor}; font-weight: bold;">${ticket.status.toUpperCase()}</td>
                     <td>
                         ${ticket.status !== 'cancelled' ?
