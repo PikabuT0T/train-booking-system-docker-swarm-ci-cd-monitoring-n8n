@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Admin - Routes{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Manage Routes</h2>
+    <div class="card">
+        <div class="card-body">
+            <table class="table" id="routesTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Origin</th>
+                        <th>Destination</th>
+                        <th>Distance (km)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+fetch('/api/routes')
+    .then(r => r.json())
+    .then(routes => {
+        const tbody = document.querySelector('#routesTable tbody');
+        routes.forEach(route => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${route.id}</td>
+                    <td>${route.origin}</td>
+                    <td>${route.destination}</td>
+                    <td>${route.distance || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="deleteRoute(${route.id})">Delete</button>
+                    </td>
+                </tr>
+            `;
+        });
+    });
+
+function deleteRoute(id) {
+    if(confirm('Delete this route?')) {
+        fetch('/api/routes/' + id, {method: 'DELETE'})
+            .then(() => location.reload());
+    }
+}
+</script>
+{% endblock %}

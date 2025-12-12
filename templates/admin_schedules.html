@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Admin - Schedules{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Manage Schedules</h2>
+    <div class="card">
+        <div class="card-body">
+            <table class="table" id="schedulesTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Train</th>
+                        <th>Route</th>
+                        <th>Departure</th>
+                        <th>Arrival</th>
+                        <th>Fare (₴)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script>
+fetch('/api/schedules')
+    .then(r => r.json())
+    .then(schedules => {
+        const tbody = document.querySelector('#schedulesTable tbody');
+        schedules.forEach(s => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${s.id}</td>
+                    <td>${s.train_name || s.train_id}</td>
+                    <td>${s.origin || ''} → ${s.destination || ''}</td>
+                    <td>${s.departure_time}</td>
+                    <td>${s.arrival_time}</td>
+                    <td>₴${s.base_fare}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="deleteSchedule(${s.id})">Delete</button>
+                    </td>
+                </tr>
+            `;
+        });
+    });
+
+function deleteSchedule(id) {
+    if(confirm('Delete this schedule?')) {
+        fetch('/api/schedules/' + id, {method: 'DELETE'})
+            .then(() => location.reload());
+    }
+}
+</script>
+{% endblock %}
