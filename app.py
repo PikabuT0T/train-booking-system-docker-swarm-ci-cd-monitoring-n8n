@@ -4,7 +4,7 @@ Main Flask Application for Train Booking System
 import os
 from flask import Flask, jsonify
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager
+#from flask_jwt_extended import JWTManager
 from models import db
 from config import Config
 
@@ -20,7 +20,7 @@ def create_app(config_class=Config):
      allow_headers=["Content-Type", "Authorization"],
      expose_headers=["Authorization"],
      supports_credentials=True)
-    jwt = JWTManager(app)
+#    jwt = JWTManager(app)
     
     # Register blueprints
     from routes.auth_routes import auth_bp
@@ -40,7 +40,7 @@ def create_app(config_class=Config):
     app.register_blueprint(schedule_bp, url_prefix='/api/schedules')
     app.register_blueprint(ticket_bp, url_prefix='/api/tickets')
     app.register_blueprint(seat_bp, url_prefix='/api/seats')
-    app.register_blueprint(payment_bp, url_prefix='/api/payments')
+#    app.register_blueprint(payment_bp, url_prefix='/api/payments')
     app.register_blueprint(web_bp)  # Frontend routes
     
     # Error handlers
@@ -54,17 +54,17 @@ def create_app(config_class=Config):
         return jsonify({'error': 'Internal server error'}), 500
     
     # JWT error handlers
-    @jwt.unauthorized_loader
-    def unauthorized_callback(callback):
-        return jsonify({'error': 'Missing or invalid token'}), 401
+#    @jwt.unauthorized_loader
+#    def unauthorized_callback(callback):
+#        return jsonify({'error': 'Missing or invalid token'}), 401
     
-    @jwt.invalid_token_loader
-    def invalid_token_callback(callback):
-        return jsonify({'error': 'Invalid token'}), 401
+#    @jwt.invalid_token_loader
+#    def invalid_token_callback(callback):
+#        return jsonify({'error': 'Invalid token'}), 401
     
-    @jwt.expired_token_loader
-    def expired_token_callback(jwt_header, jwt_payload):
-        return jsonify({'error': 'Token has expired'}), 401
+#    @jwt.expired_token_loader
+#    def expired_token_callback(jwt_header, jwt_payload):
+#        return jsonify({'error': 'Token has expired'}), 401
     
     # Database initialization
     with app.app_context():
@@ -84,7 +84,7 @@ def create_app(config_class=Config):
                 'schedules': '/api/schedules',
                 'tickets': '/api/tickets',
                 'seats': '/api/seats',
-                'payments': '/api/payments',
+#                'payments': '/api/payments',
                 'web': '/'
             }
         })
