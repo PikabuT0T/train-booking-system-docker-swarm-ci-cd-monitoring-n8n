@@ -30,7 +30,7 @@ def create_app(config_class=Config):
     from routes.schedule_routes import schedule_bp
     from routes.ticket_routes import ticket_bp
     from routes.seat_routes import seat_bp
-    from routes.payment_routes import payment_bp
+#    from routes.payment_routes import payment_bp
     from routes.web_routes import web_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
