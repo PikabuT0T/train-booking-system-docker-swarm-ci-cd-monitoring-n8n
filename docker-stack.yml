@@ -73,7 +73,7 @@ services:
           sleep 2;
         done;
         echo 'DB is ready! Starting app...';
-        exec gunicorn -b 0.0.0.0:5000 'app:create_app()'
+        exec gunicorn -b 0.0.0.0:5000 --workers 2 --threads 2 --timeout 120 --graceful-timeout 30 --keep-alive 5 --worker-class gthread 'app:create_app()'
       "
     environment:
       MYSQL_HOST: mysql

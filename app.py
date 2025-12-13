@@ -68,8 +68,16 @@ def create_app(config_class=Config):
     
     # Database initialization
     with app.app_context():
-        db.create_all()
-        print("Database tables created successfully!")
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        existing_tables = inspector.get_table_names()
+    
+        if not existing_tables:
+            db.create_all()
+            print("Database tables created successfully!")
+        else:
+            print(f"Database ready ({len(existing_tables)} tables exist)")
+
     
     @app.route('/')
     def index():

@@ -210,7 +210,7 @@
     </div>
     
     <footer class="footer">
-        <p>&copy; 2024 Train Booking System. All rights reserved.</p>
+        <p>Heave a pleasant journey!</p>
     </footer>
     
     <script>
@@ -235,6 +235,7 @@
                     
                     if (data.user.role === 'admin') {
                         document.getElementById('nav-admin').style.display = 'block';
+			document.getElementById('nav-dashboard').style.display = 'none';
                     }
                 } else {
                     // User is not logged in
