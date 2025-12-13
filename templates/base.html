@@ -10,14 +10,14 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
             color: #333;
             background-color: #f4f7f9;
         }
-        
+
         .navbar {
             background-color: #2c3e50;
             color: white;
@@ -27,36 +27,102 @@
             align-items: center;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        
+
         .navbar-brand {
             font-size: 1.5rem;
             font-weight: bold;
             color: white;
             text-decoration: none;
         }
-        
+
         .navbar-menu {
             display: flex;
             gap: 2rem;
             list-style: none;
+            align-items: center;
         }
-        
+
         .navbar-menu a {
             color: white;
             text-decoration: none;
             transition: color 0.3s;
         }
-        
+
         .navbar-menu a:hover {
             color: #3498db;
         }
-        
+
+        /* Dropdown styles */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-toggle {
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .dropdown-toggle:hover {
+            color: #3498db;
+        }
+
+        .dropdown-toggle::after {
+            content: '';
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            display: inline-block;
+            padding: 3px;
+            transform: rotate(45deg);
+            margin-left: 5px;
+            margin-bottom: 3px;
+        }
+
+        .dropdown-toggle:hover::after {
+            border-color: #3498db;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #34495e;
+            min-width: 180px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            border-radius: 4px;
+            z-index: 1000;
+            margin-top: 0.5rem;
+        }
+
+        .dropdown-menu a {
+            color: white;
+            padding: 0.75rem 1rem;
+            text-decoration: none;
+            display: block;
+            transition: background-color 0.3s;
+        }
+
+        .dropdown-menu a:hover {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .dropdown:hover .dropdown-menu {
+            display: block;
+        }
+
         .container {
             max-width: 1200px;
             margin: 2rem auto;
             padding: 0 2rem;
         }
-        
+
         .card {
             background: white;
             border-radius: 8px;
@@ -64,7 +130,7 @@
             margin-bottom: 2rem;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        
+
         .btn {
             display: inline-block;
             padding: 0.75rem 1.5rem;
@@ -75,44 +141,53 @@
             text-decoration: none;
             transition: background-color 0.3s;
         }
-        
+
         .btn-primary {
             background-color: #3498db;
             color: white;
         }
-        
+
         .btn-primary:hover {
             background-color: #2980b9;
         }
-        
+
         .btn-success {
             background-color: #2ecc71;
             color: white;
         }
-        
+
         .btn-success:hover {
             background-color: #27ae60;
         }
-        
+
         .btn-danger {
             background-color: #e74c3c;
             color: white;
         }
-        
+
         .btn-danger:hover {
             background-color: #c0392b;
         }
-        
+
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
         .form-group {
             margin-bottom: 1.5rem;
         }
-        
+
         .form-group label {
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 500;
         }
-        
+
         .form-group input,
         .form-group select,
         .form-group textarea {
@@ -122,53 +197,53 @@
             border-radius: 4px;
             font-size: 1rem;
         }
-        
+
         .alert {
             padding: 1rem;
             border-radius: 4px;
             margin-bottom: 1rem;
         }
-        
+
         .alert-success {
             background-color: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
         }
-        
+
         .alert-error {
             background-color: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
-        
+
         .alert-info {
             background-color: #d1ecf1;
             color: #0c5460;
             border: 1px solid #bee5eb;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 1rem;
         }
-        
+
         table th,
         table td {
             padding: 1rem;
             text-align: left;
             border-bottom: 1px solid #ddd;
         }
-        
+
         table th {
             background-color: #f8f9fa;
             font-weight: 600;
         }
-        
+
         table tr:hover {
             background-color: #f5f5f5;
         }
-        
+
         .footer {
             background-color: #2c3e50;
             color: white;
@@ -176,7 +251,7 @@
             padding: 2rem;
             margin-top: 3rem;
         }
-        
+
         #message-container {
             position: fixed;
             top: 80px;
@@ -191,31 +266,48 @@
     <nav class="navbar">
         <a href="/" class="navbar-brand">Train Booking System</a>
         <ul class="navbar-menu" id="navbar-menu">
-            <li><a href="/">Home</a></li>
-            <li><a href="/search">Search Trains</a></li>
-            <li><a href="/trains">All Trains</a></li>
+            <!-- User Navigation (shown for regular users) -->
+            <li id="nav-home"><a href="/">Home</a></li>
+            <li id="nav-search"><a href="/search">Search Trains</a></li>
+            <li id="nav-trains"><a href="/trains">All Trains</a></li>
             <li id="nav-tickets" style="display:none;"><a href="/tickets">My Tickets</a></li>
             <li id="nav-dashboard" style="display:none;"><a href="/dashboard">Dashboard</a></li>
-            <li id="nav-admin" style="display:none;"><a href="/admin">Admin</a></li>
+            
+            <!-- Admin Navigation (shown for admin users) -->
+            <li id="nav-admin-dropdown" style="display:none;">
+                <div class="dropdown">
+                    <span class="dropdown-toggle">Manage</span>
+                    <div class="dropdown-menu">
+                        <a href="/admin/users">Users</a>
+                        <a href="/admin/trains">Trains</a>
+                        <a href="/admin/routes">Routes</a>
+                        <a href="/admin/schedules">Schedules</a>
+                        <a href="/admin/tickets">Tickets</a>
+                    </div>
+                </div>
+            </li>
+            <li id="nav-admin" style="display:none;"><a href="/admin">Admin Panel</a></li>
+            
+            <!-- Auth Navigation -->
             <li id="nav-login"><a href="/login">Login</a></li>
             <li id="nav-register"><a href="/register">Register</a></li>
             <li id="nav-logout" style="display:none;"><a href="#" onclick="logout()">Logout</a></li>
         </ul>
     </nav>
-    
+
     <div id="message-container"></div>
-    
+
     <div class="container">
         {% block content %}{% endblock %}
     </div>
-    
+
     <footer class="footer">
-        <p>Heave a pleasant journey!</p>
+        <p>Have a pleasant journey!</p>
     </footer>
-    
+
     <script>
         const API_BASE_URL = window.location.origin + '/api';
-        
+
         // Check authentication status
         async function checkAuth() {
             try {
@@ -223,19 +315,32 @@
                     credentials: 'include'
                 });
                 const data = await response.json();
-                
+
                 if (data.authenticated && data.user) {
                     // User is logged in
                     localStorage.setItem('user', JSON.stringify(data.user));
                     document.getElementById('nav-login').style.display = 'none';
                     document.getElementById('nav-register').style.display = 'none';
                     document.getElementById('nav-logout').style.display = 'block';
-                    document.getElementById('nav-tickets').style.display = 'block';
-                    document.getElementById('nav-dashboard').style.display = 'block';
-                    
+
                     if (data.user.role === 'admin') {
+                        // Admin user - show admin navigation
+                        document.getElementById('nav-home').style.display = 'none';
+                        document.getElementById('nav-search').style.display = 'block';
+                        document.getElementById('nav-trains').style.display = 'none';
+                        document.getElementById('nav-tickets').style.display = 'none';
+                        document.getElementById('nav-dashboard').style.display = 'none';
                         document.getElementById('nav-admin').style.display = 'block';
-			document.getElementById('nav-dashboard').style.display = 'none';
+                        document.getElementById('nav-admin-dropdown').style.display = 'block';
+                    } else {
+                        // Regular user - show user navigation
+                        document.getElementById('nav-home').style.display = 'block';
+                        document.getElementById('nav-search').style.display = 'block';
+                        document.getElementById('nav-trains').style.display = 'block';
+                        document.getElementById('nav-tickets').style.display = 'block';
+                        document.getElementById('nav-dashboard').style.display = 'block';
+                        document.getElementById('nav-admin').style.display = 'none';
+                        document.getElementById('nav-admin-dropdown').style.display = 'none';
                     }
                 } else {
                     // User is not logged in
@@ -246,12 +351,13 @@
                     document.getElementById('nav-tickets').style.display = 'none';
                     document.getElementById('nav-dashboard').style.display = 'none';
                     document.getElementById('nav-admin').style.display = 'none';
+                    document.getElementById('nav-admin-dropdown').style.display = 'none';
                 }
             } catch (error) {
                 console.error('Auth check failed:', error);
             }
         }
-        
+
         // Logout function
         async function logout() {
             try {
@@ -268,7 +374,7 @@
                 showMessage('Logout failed', 'error');
             }
         }
-        
+
         // Show message function
         function showMessage(message, type = 'info') {
             const container = document.getElementById('message-container');
@@ -276,12 +382,12 @@
             alertDiv.className = 'alert alert-' + type;
             alertDiv.textContent = message;
             container.appendChild(alertDiv);
-            
+
             setTimeout(() => {
                 alertDiv.remove();
             }, 5000);
         }
-        
+
         // Make API request with credentials
         async function apiRequest(url, options = {}) {
             const defaultOptions = {
@@ -290,7 +396,7 @@
                     'Content-Type': 'application/json'
                 }
             };
-            
+
             const mergedOptions = {
                 ...defaultOptions,
                 ...options,
@@ -299,17 +405,17 @@
                     ...(options.headers || {})
                 }
             };
-            
+
             const response = await fetch(url, mergedOptions);
             const data = await response.json();
-            
+
             if (!response.ok) {
                 throw new Error(data.error || 'Request failed');
             }
-            
+
             return data;
         }
-        
+
         // Initialize on page load
         checkAuth();
     </script>
