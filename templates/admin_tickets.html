@@ -1,0 +1,384 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Tickets - Admin{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>Manage Tickets</h2>
+        <a href="/admin" class="btn btn-secondary">← Back to Dashboard</a>
+    </div>
+
+    <!-- Search/Filter Section -->
+    <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+        <h3 style="margin-bottom: 1rem;">Search & Filter</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="search_pnr">PNR Number</label>
+                <input type="text" id="search_pnr" placeholder="Search by PNR...">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="search_passenger">Passenger Name</label>
+                <input type="text" id="search_passenger" placeholder="Search by name...">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="filter_status">Status</label>
+                <select id="filter_status">
+                    <option value="">All Statuses</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="pending">Pending</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="waitlisted">Waitlisted</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="filter_date_from">Journey Date From</label>
+                <input type="date" id="filter_date_from">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="filter_date_to">Journey Date To</label>
+                <input type="date" id="filter_date_to">
+            </div>
+            <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-end; gap: 0.5rem;">
+                <button class="btn btn-primary" onclick="filterTickets()">Search</button>
+                <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+        <div style="background: #d4edda; padding: 1rem; border-radius: 8px; text-align: center;">
+            <strong style="color: #155724;">Confirmed</strong>
+            <p id="stat-confirmed" style="font-size: 1.5rem; font-weight: bold; color: #155724; margin: 0;">0</p>
+        </div>
+        <div style="background: #fff3cd; padding: 1rem; border-radius: 8px; text-align: center;">
+            <strong style="color: #856404;">Pending</strong>
+            <p id="stat-pending" style="font-size: 1.5rem; font-weight: bold; color: #856404; margin: 0;">0</p>
+        </div>
+        <div style="background: #f8d7da; padding: 1rem; border-radius: 8px; text-align: center;">
+            <strong style="color: #721c24;">Cancelled</strong>
+            <p id="stat-cancelled" style="font-size: 1.5rem; font-weight: bold; color: #721c24; margin: 0;">0</p>
+        </div>
+        <div style="background: #d1ecf1; padding: 1rem; border-radius: 8px; text-align: center;">
+            <strong style="color: #0c5460;">Waitlisted</strong>
+            <p id="stat-waitlisted" style="font-size: 1.5rem; font-weight: bold; color: #0c5460; margin: 0;">0</p>
+        </div>
+    </div>
+
+    <!-- Tickets Table -->
+    <h3 style="margin-bottom: 1rem;">Tickets (<span id="ticket-count">0</span>)</h3>
+    <div id="tickets-container">
+        <p style="text-align: center;">Loading tickets...</p>
+    </div>
+</div>
+
+<!-- Edit Ticket Modal -->
+<div id="edit-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="background: white; max-width: 600px; margin: 3% auto; padding: 2rem; border-radius: 8px; max-height: 90vh; overflow-y: auto;">
+        <h3 style="margin-bottom: 1rem;">Edit Ticket</h3>
+        <form id="edit-ticket-form">
+            <input type="hidden" id="edit_ticket_id">
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label for="edit_pnr">PNR Number</label>
+                    <input type="text" id="edit_pnr" readonly style="background: #f0f0f0;">
+                </div>
+                <div class="form-group">
+                    <label for="edit_status">Status</label>
+                    <select id="edit_status">
+                        <option value="confirmed">Confirmed</option>
+                        <option value="pending">Pending</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="waitlisted">Waitlisted</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label for="edit_passenger_name">Passenger Name</label>
+                    <input type="text" id="edit_passenger_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit_passenger_age">Age</label>
+                    <input type="number" id="edit_passenger_age" required min="1" max="120">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label for="edit_passenger_gender">Gender</label>
+                    <select id="edit_passenger_gender">
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit_seat_number">Seat Number</label>
+                    <input type="text" id="edit_seat_number">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label for="edit_journey_date">Journey Date</label>
+                    <input type="date" id="edit_journey_date" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit_fare">Fare (₴)</label>
+                    <input type="number" id="edit_fare" required min="0" step="0.01">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let allTickets = [];
+let filteredTickets = [];
+
+async function loadTickets() {
+    try {
+        // Check admin access
+        const authData = await apiRequest(API_BASE_URL + '/auth/check');
+        if (!authData.authenticated || authData.user.role !== 'admin') {
+            showMessage('Admin access required', 'error');
+            setTimeout(() => window.location.href = '/', 1000);
+            return;
+        }
+
+        const response = await apiRequest(API_BASE_URL + '/tickets/');
+        allTickets = response.tickets || [];
+        filteredTickets = [...allTickets];
+        updateStatistics();
+        renderTickets();
+    } catch (error) {
+        console.error('Error loading tickets:', error);
+        showMessage('Error loading tickets', 'error');
+    }
+}
+
+function updateStatistics() {
+    const stats = {
+        confirmed: 0,
+        pending: 0,
+        cancelled: 0,
+        waitlisted: 0
+    };
+
+    allTickets.forEach(ticket => {
+        if (stats.hasOwnProperty(ticket.status)) {
+            stats[ticket.status]++;
+        }
+    });
+
+    document.getElementById('stat-confirmed').textContent = stats.confirmed;
+    document.getElementById('stat-pending').textContent = stats.pending;
+    document.getElementById('stat-cancelled').textContent = stats.cancelled;
+    document.getElementById('stat-waitlisted').textContent = stats.waitlisted;
+}
+
+function filterTickets() {
+    const pnr = document.getElementById('search_pnr').value.toLowerCase();
+    const passenger = document.getElementById('search_passenger').value.toLowerCase();
+    const status = document.getElementById('filter_status').value;
+    const dateFrom = document.getElementById('filter_date_from').value;
+    const dateTo = document.getElementById('filter_date_to').value;
+
+    filteredTickets = allTickets.filter(ticket => {
+        const matchPnr = !pnr || ticket.pnr_number.toLowerCase().includes(pnr);
+        const matchPassenger = !passenger || ticket.passenger_name.toLowerCase().includes(passenger);
+        const matchStatus = !status || ticket.status === status;
+        
+        let matchDateFrom = true;
+        let matchDateTo = true;
+        
+        if (dateFrom && ticket.journey_date) {
+            matchDateFrom = ticket.journey_date >= dateFrom;
+        }
+        if (dateTo && ticket.journey_date) {
+            matchDateTo = ticket.journey_date <= dateTo;
+        }
+
+        return matchPnr && matchPassenger && matchStatus && matchDateFrom && matchDateTo;
+    });
+
+    renderTickets();
+}
+
+function clearFilters() {
+    document.getElementById('search_pnr').value = '';
+    document.getElementById('search_passenger').value = '';
+    document.getElementById('filter_status').value = '';
+    document.getElementById('filter_date_from').value = '';
+    document.getElementById('filter_date_to').value = '';
+    filteredTickets = [...allTickets];
+    renderTickets();
+}
+
+function renderTickets() {
+    const container = document.getElementById('tickets-container');
+    document.getElementById('ticket-count').textContent = filteredTickets.length;
+
+    if (filteredTickets.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">No tickets found.</div>';
+        return;
+    }
+
+    let html = `
+        <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>PNR</th>
+                    <th>Passenger</th>
+                    <th>Age/Gender</th>
+                    <th>Journey Date</th>
+                    <th>Seat</th>
+                    <th>Fare</th>
+                    <th>Status</th>
+                    <th>Booked On</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    const statusColors = {
+        'confirmed': { bg: '#d4edda', color: '#155724' },
+        'pending': { bg: '#fff3cd', color: '#856404' },
+        'cancelled': { bg: '#f8d7da', color: '#721c24' },
+        'waitlisted': { bg: '#d1ecf1', color: '#0c5460' }
+    };
+
+    filteredTickets.forEach(ticket => {
+        const statusStyle = statusColors[ticket.status] || { bg: '#f0f0f0', color: '#333' };
+        
+        html += `
+            <tr>
+                <td><strong>${ticket.pnr_number}</strong></td>
+                <td>${ticket.passenger_name}</td>
+                <td>${ticket.passenger_age} / ${ticket.passenger_gender}</td>
+                <td>${ticket.journey_date}</td>
+                <td>${ticket.seat_number || '-'}</td>
+                <td>₴${ticket.fare}</td>
+                <td>
+                    <span style="background: ${statusStyle.bg}; color: ${statusStyle.color}; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">
+                        ${ticket.status.toUpperCase()}
+                    </span>
+                </td>
+                <td>${ticket.booking_date}</td>
+                <td>
+                    <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;" onclick="editTicket(${ticket.id})">Edit</button>
+                    <button class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;" onclick="cancelTicket(${ticket.id})">Cancel</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+function editTicket(ticketId) {
+    const ticket = allTickets.find(t => t.id === ticketId);
+    if (!ticket) return;
+
+    document.getElementById('edit_ticket_id').value = ticket.id;
+    document.getElementById('edit_pnr').value = ticket.pnr_number;
+    document.getElementById('edit_status').value = ticket.status;
+    document.getElementById('edit_passenger_name').value = ticket.passenger_name;
+    document.getElementById('edit_passenger_age').value = ticket.passenger_age;
+    document.getElementById('edit_passenger_gender').value = ticket.passenger_gender;
+    document.getElementById('edit_seat_number').value = ticket.seat_number || '';
+    document.getElementById('edit_journey_date').value = ticket.journey_date;
+    document.getElementById('edit_fare').value = ticket.fare;
+
+    document.getElementById('edit-modal').style.display = 'block';
+}
+
+function closeEditModal() {
+    document.getElementById('edit-modal').style.display = 'none';
+}
+
+document.getElementById('edit-ticket-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const ticketId = document.getElementById('edit_ticket_id').value;
+    const formData = {
+        status: document.getElementById('edit_status').value,
+        passenger_name: document.getElementById('edit_passenger_name').value,
+        passenger_age: parseInt(document.getElementById('edit_passenger_age').value),
+        passenger_gender: document.getElementById('edit_passenger_gender').value,
+        seat_number: document.getElementById('edit_seat_number').value,
+        journey_date: document.getElementById('edit_journey_date').value,
+        fare: parseFloat(document.getElementById('edit_fare').value)
+    };
+
+    try {
+        await apiRequest(API_BASE_URL + '/tickets/' + ticketId, {
+            method: 'PUT',
+            body: JSON.stringify(formData)
+        });
+
+        showMessage('Ticket updated successfully!', 'success');
+        closeEditModal();
+        loadTickets();
+    } catch (error) {
+        showMessage('Error updating ticket: ' + error.message, 'error');
+    }
+});
+
+async function cancelTicket(ticketId) {
+    const ticket = allTickets.find(t => t.id === ticketId);
+    if (!ticket) return;
+
+    if (ticket.status === 'cancelled') {
+        showMessage('Ticket is already cancelled', 'info');
+        return;
+    }
+
+    if (!confirm(`Cancel ticket ${ticket.pnr_number} for ${ticket.passenger_name}?`)) {
+        return;
+    }
+
+    try {
+        await apiRequest(API_BASE_URL + '/tickets/' + ticketId, {
+            method: 'PUT',
+            body: JSON.stringify({ status: 'cancelled' })
+        });
+
+        showMessage('Ticket cancelled successfully!', 'success');
+        loadTickets();
+    } catch (error) {
+        showMessage('Error cancelling ticket: ' + error.message, 'error');
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('edit-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'edit-modal') {
+        closeEditModal();
+    }
+});
+
+// Enable search on Enter key
+document.querySelectorAll('#search_pnr, #search_passenger').forEach(input => {
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') filterTickets();
+    });
+});
+
+loadTickets();
+</script>
+{% endblock %}

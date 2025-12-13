@@ -76,3 +76,11 @@ def admin_routes():
 def admin_schedules():
     """Admin schedules management"""
     return render_template('admin_schedules.html')
+
+@web_bp.route('/admin/users')
+def admin_users():
+    return render_template('admin_users.html')
+
+@web_bp.route('/admin/tickets')
+def admin_tickets():
+    return render_template('admin_tickets.html')

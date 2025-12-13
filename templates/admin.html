@@ -29,21 +29,27 @@
     </div>
 
     <h3 style="margin-bottom: 1rem;">Management Sections</h3>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <a href="/admin/users" class="btn btn-primary" style="text-align: center; padding: 1.5rem;">
+            Manage Users
+        </a>
         <a href="/admin/trains" class="btn btn-primary" style="text-align: center; padding: 1.5rem;">
-                Manage Trains
+            Manage Trains
         </a>
         <a href="/admin/routes" class="btn btn-primary" style="text-align: center; padding: 1.5rem;">
-                Manage Routes
+            Manage Routes
         </a>
         <a href="/admin/schedules" class="btn btn-primary" style="text-align: center; padding: 1.5rem;">
-                Manage Schedules
+            Manage Schedules
+        </a>
+        <a href="/admin/tickets" class="btn btn-primary" style="text-align: center; padding: 1.5rem;">
+            Manage Tickets
         </a>
     </div>
 </div>
 
 <div class="card">
-    <h3 style="margin-bottom: 1rem;">Recent Bookings (All Users)</h3>
+    <h3 style="margin-bottom: 1rem;">Recent Bookings</h3>
     <div id="recent-bookings">
         <p style="text-align: center;">Loading bookings...</p>
     </div>
@@ -73,13 +79,13 @@ async function loadAdminDashboard() {
             apiRequest(API_BASE_URL + '/tickets/')
         ]);
 
-        document.getElementById('total-users').textContent = usersData.users.length;
-        document.getElementById('total-trains').textContent = trainsData.trains.length;
-        document.getElementById('total-routes').textContent = routesData.routes.length;
-        document.getElementById('total-bookings').textContent = ticketsData.tickets.length;
+        document.getElementById('total-users').textContent = usersData.users ? usersData.users.length : 0;
+        document.getElementById('total-trains').textContent = trainsData.trains ? trainsData.trains.length : 0;
+        document.getElementById('total-routes').textContent = routesData.routes ? routesData.routes.length : 0;
+        document.getElementById('total-bookings').textContent = ticketsData.tickets ? ticketsData.tickets.length : 0;
 
         // Display recent bookings
-        const recentBookings = ticketsData.tickets.slice(0, 10);
+        const recentBookings = (ticketsData.tickets || []).slice(0, 10);
         const recentContainer = document.getElementById('recent-bookings');
 
         if (recentBookings.length === 0) {

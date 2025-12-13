@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Users - Admin{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>Manage Users</h2>
+        <a href="/admin" class="btn btn-secondary">← Back to Dashboard</a>
+    </div>
+
+    <!-- Search/Filter Section -->
+    <div style="background: #f5f5f5; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+        <h3 style="margin-bottom: 1rem;">Search & Filter</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="search_username">Username</label>
+                <input type="text" id="search_username" placeholder="Search by username...">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="search_email">Email</label>
+                <input type="text" id="search_email" placeholder="Search by email...">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label for="filter_role">Role</label>
+                <select id="filter_role">
+                    <option value="">All Roles</option>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0; display: flex; align-items: flex-end;">
+                <button class="btn btn-primary" onclick="filterUsers()">Search</button>
+                <button class="btn btn-secondary" style="margin-left: 0.5rem;" onclick="clearFilters()">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <h3 style="margin-bottom: 1rem;">All Users (<span id="user-count">0</span>)</h3>
+    <div id="users-container">
+        <p style="text-align: center;">Loading users...</p>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div id="edit-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="background: white; max-width: 500px; margin: 5% auto; padding: 2rem; border-radius: 8px; max-height: 80vh; overflow-y: auto;">
+        <h3 style="margin-bottom: 1rem;">Edit User</h3>
+        <form id="edit-user-form">
+            <input type="hidden" id="edit_user_id">
+            <div class="form-group">
+                <label for="edit_username">Username</label>
+                <input type="text" id="edit_username" required>
+            </div>
+            <div class="form-group">
+                <label for="edit_email">Email</label>
+                <input type="email" id="edit_email" required>
+            </div>
+            <div class="form-group">
+                <label for="edit_full_name">Full Name</label>
+                <input type="text" id="edit_full_name" required>
+            </div>
+            <div class="form-group">
+                <label for="edit_phone">Phone</label>
+                <input type="text" id="edit_phone">
+            </div>
+            <div class="form-group">
+                <label for="edit_role">Role</label>
+                <select id="edit_role">
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="edit_password">New Password (leave blank to keep current)</label>
+                <input type="password" id="edit_password" placeholder="Enter new password...">
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let allUsers = [];
+let filteredUsers = [];
+
+async function loadUsers() {
+    try {
+        // Check admin access
+        const authData = await apiRequest(API_BASE_URL + '/auth/check');
+        if (!authData.authenticated || authData.user.role !== 'admin') {
+            showMessage('Admin access required', 'error');
+            setTimeout(() => window.location.href = '/', 1000);
+            return;
+        }
+
+        const response = await apiRequest(API_BASE_URL + '/users/');
+        allUsers = response.users || [];
+        filteredUsers = [...allUsers];
+        renderUsers();
+    } catch (error) {
+        console.error('Error loading users:', error);
+        showMessage('Error loading users', 'error');
+    }
+}
+
+function filterUsers() {
+    const username = document.getElementById('search_username').value.toLowerCase();
+    const email = document.getElementById('search_email').value.toLowerCase();
+    const role = document.getElementById('filter_role').value;
+
+    filteredUsers = allUsers.filter(user => {
+        const matchUsername = !username || user.username.toLowerCase().includes(username);
+        const matchEmail = !email || user.email.toLowerCase().includes(email);
+        const matchRole = !role || user.role === role;
+        return matchUsername && matchEmail && matchRole;
+    });
+
+    renderUsers();
+}
+
+function clearFilters() {
+    document.getElementById('search_username').value = '';
+    document.getElementById('search_email').value = '';
+    document.getElementById('filter_role').value = '';
+    filteredUsers = [...allUsers];
+    renderUsers();
+}
+
+function renderUsers() {
+    const container = document.getElementById('users-container');
+    document.getElementById('user-count').textContent = filteredUsers.length;
+
+    if (filteredUsers.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">No users found.</div>';
+        return;
+    }
+
+    let html = `
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Full Name</th>
+                    <th>Phone</th>
+                    <th>Role</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    filteredUsers.forEach(user => {
+        const roleColor = user.role === 'admin' ? '#e74c3c' : '#3498db';
+        const createdDate = user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A';
+        
+        html += `
+            <tr>
+                <td>${user.id}</td>
+                <td><strong>${user.username}</strong></td>
+                <td>${user.email}</td>
+                <td>${user.full_name || '-'}</td>
+                <td>${user.phone || '-'}</td>
+                <td><span style="background: ${roleColor}; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">${user.role.toUpperCase()}</span></td>
+                <td>${createdDate}</td>
+                <td>
+                    <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;" onclick="editUser(${user.id})">Edit</button>
+                    <button class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;" onclick="deleteUser(${user.id})">Delete</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function editUser(userId) {
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) return;
+
+    document.getElementById('edit_user_id').value = user.id;
+    document.getElementById('edit_username').value = user.username;
+    document.getElementById('edit_email').value = user.email;
+    document.getElementById('edit_full_name').value = user.full_name || '';
+    document.getElementById('edit_phone').value = user.phone || '';
+    document.getElementById('edit_role').value = user.role;
+    document.getElementById('edit_password').value = '';
+
+    document.getElementById('edit-modal').style.display = 'block';
+}
+
+function closeEditModal() {
+    document.getElementById('edit-modal').style.display = 'none';
+}
+
+document.getElementById('edit-user-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const userId = document.getElementById('edit_user_id').value;
+    const formData = {
+        username: document.getElementById('edit_username').value,
+        email: document.getElementById('edit_email').value,
+        full_name: document.getElementById('edit_full_name').value,
+        phone: document.getElementById('edit_phone').value,
+        role: document.getElementById('edit_role').value
+    };
+
+    const newPassword = document.getElementById('edit_password').value;
+    if (newPassword) {
+        formData.password = newPassword;
+    }
+
+    try {
+        await apiRequest(API_BASE_URL + '/users/' + userId, {
+            method: 'PUT',
+            body: JSON.stringify(formData)
+        });
+
+        showMessage('User updated successfully!', 'success');
+        closeEditModal();
+        loadUsers();
+    } catch (error) {
+        showMessage('Error updating user: ' + error.message, 'error');
+    }
+});
+
+async function deleteUser(userId) {
+    const user = allUsers.find(u => u.id === userId);
+    if (!user) return;
+
+    if (user.role === 'admin') {
+        if (!confirm(`WARNING: You are about to delete an ADMIN user "${user.username}". Are you sure?`)) {
+            return;
+        }
+    } else {
+        if (!confirm(`Delete user "${user.username}"? This will also delete all their tickets and payments.`)) {
+            return;
+        }
+    }
+
+    try {
+        await apiRequest(API_BASE_URL + '/users/' + userId, {
+            method: 'DELETE'
+        });
+
+        showMessage('User deleted successfully!', 'success');
+        loadUsers();
+    } catch (error) {
+        showMessage('Error deleting user: ' + error.message, 'error');
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('edit-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'edit-modal') {
+        closeEditModal();
+    }
+});
+
+// Enable search on Enter key
+document.querySelectorAll('#search_username, #search_email').forEach(input => {
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') filterUsers();
+    });
+});
+
+loadUsers();
+</script>
+{% endblock %}
